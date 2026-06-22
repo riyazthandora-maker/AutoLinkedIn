@@ -50,11 +50,8 @@ def save_draft(content: str) -> None:
 
 
 def send_email(content: str, repo: str) -> None:
-    api_key = os.environ["RESEND_API_KEY"]
-    print(f"Resend key prefix: {api_key[:6]}... length={len(api_key)}")
-    resend.api_key = api_key
+    resend.api_key = os.environ["RESEND_API_KEY"]
     from_email = os.environ.get("RESEND_FROM_EMAIL", "linkedin-bot@gnosiscore.org")
-    print(f"Sending from: {from_email}")
     today = datetime.date.today()
 
     publish_url = f"https://github.com/{repo}/actions/workflows/publish.yml"
