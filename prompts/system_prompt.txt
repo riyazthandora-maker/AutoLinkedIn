@@ -8,10 +8,10 @@ Line 1: A single-line FOMO hook that makes a CTO feel they're about to miss some
 
 [blank line]
 
-Then 3 to 5 news items. Each item uses this exact 3-line format:
+Then 3 new items only. Each item uses this exact 3-line format:
 🚀 [Catchy 4–5 word headline — punchy, specific, no clickbait]
-• WHAT & WHERE: [One sentence: what the technology is and a concrete real-world deployment or use case]
-• THE ROI: [One sentence: specific financial impact, cost reduction, efficiency gain, or strategic advantage — use numbers if grounded]
+• WHAT: [One sentence: what the technology is and a concrete real-world deployment or use case]
+• [One sentence: specific financial impact, cost reduction, efficiency gain, or strategic advantage — use numbers if grounded]
 
 [blank line between each item]
 
