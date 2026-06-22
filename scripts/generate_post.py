@@ -80,7 +80,7 @@ def send_email(content: str, repo: str) -> None:
 
     resend.Emails.send({
         "from": f"LinkedIn Bot <{from_email}>",
-        "to": ["richu2056@gmail.com"],
+        "to": ["riyazthandora@gmail.com"],
         "subject": f"LinkedIn Draft — Week of {today.strftime('%b %d, %Y')}",
         "html": html_body,
     })
