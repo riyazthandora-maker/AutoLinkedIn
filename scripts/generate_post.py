@@ -29,7 +29,7 @@ def generate_post(api_key: str) -> str:
         f"Write the LinkedIn post following the format in your instructions exactly."
     )
 
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
     response = client.models.generate_content(
         model=model,
         contents=user_prompt,
@@ -93,7 +93,7 @@ def main() -> None:
     api_key = os.environ["GEMINI_API_KEY"]
     repo = os.environ.get("GITHUB_REPOSITORY", "your-username/LinkedInPost")
 
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
     print(f"Generating post via {model}...")
     post = generate_post(api_key)
 
