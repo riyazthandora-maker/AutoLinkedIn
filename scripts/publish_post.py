@@ -72,7 +72,7 @@ def main() -> None:
         print("--- END ---")
         return
 
-    access_token = os.environ["LINKEDIN_ACCESS_TOKEN"]
+    access_token = os.environ["LINKEDIN_ACCESS_TOKEN"].strip()
 
     print("Publishing to LinkedIn...")
     post_id = publish_post(content, access_token)
