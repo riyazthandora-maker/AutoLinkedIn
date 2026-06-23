@@ -32,4 +32,4 @@ CONTENT RULES:
 - Skip stories that are rumours, speculation, or without credible confirmation
 - If fewer than 3 confirmed stories fit the buckets this week, use 3 items — never pad with weak news
 
-OUTPUT: Return only the LinkedIn post text. No preamble, no explanation, no metadata.
+OUTPUT: Return only the LinkedIn post text. No preamble, no explanation, no metadata. No markdown formatting — no asterisks, no bold, no italics, no headers.
