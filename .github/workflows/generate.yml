@@ -38,6 +38,6 @@ jobs:
         run: |
           git config user.name "linkedin-bot"
           git config user.email "github-actions@github.com"
-          git add drafts/latest.md
+          git add drafts/latest.md drafts/latest.png
           git diff --cached --quiet || git commit -m "chore: update LinkedIn draft [skip ci]"
           git push

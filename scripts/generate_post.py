@@ -1,4 +1,5 @@
 import os
+import base64
 import datetime
 from pathlib import Path
 
@@ -8,25 +9,24 @@ import resend
 
 
 REPO_ROOT = Path(__file__).parent.parent
-SYSTEM_PROMPT_PATH = REPO_ROOT / "prompts" / "system_prompt.txt"
 DRAFT_PATH = REPO_ROOT / "drafts" / "latest.md"
+DRAFT_IMAGE_PATH = REPO_ROOT / "drafts" / "latest.png"
 
 
-def load_system_prompt() -> str:
-    return SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
-
-
-def generate_post(api_key: str) -> str:
+def get_top_story(api_key: str) -> tuple[str, str]:
     client = genai.Client(api_key=api_key)
-
     today = datetime.date.today()
     week_ago = today - datetime.timedelta(days=7)
 
     user_prompt = (
         f"Today is {today.strftime('%A, %B %d, %Y')}. "
-        f"Find the top tech stories published between {week_ago.strftime('%B %d')} and {today.strftime('%B %d, %Y')} "
-        f"that fit the 3 content buckets: major AI model releases, OpEx-cutting tools/platforms, and corporate tech M&A or strategic pivots. "
-        f"Write the LinkedIn post following the format in your instructions exactly."
+        f"Search the web and find the single biggest tech news story from the past 7 days "
+        f"({week_ago.strftime('%B %d')} to {today.strftime('%B %d, %Y')}). "
+        f"Reply in exactly two lines:\n"
+        f"CAPTION: [one declarative sentence, max 15 words, summarising the story]\n"
+        f"SKETCH: [describe a single visual scene that represents this story — "
+        f"suitable for a minimalist pencil sketch, no text, no logos, no abstract concepts — "
+        f"describe real objects and people only, e.g. 'a engineer standing next to a large server rack']"
     )
 
     model = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
@@ -34,41 +34,84 @@ def generate_post(api_key: str) -> str:
         model=model,
         contents=user_prompt,
         config=types.GenerateContentConfig(
-            system_instruction=load_system_prompt(),
             tools=[types.Tool(google_search=types.GoogleSearch())],
-            temperature=0.7,
+            temperature=0.4,
         ),
     )
 
-    return response.text.strip()
+    text = response.text.strip()
+    caption, sketch_description = "", ""
+    for line in text.splitlines():
+        if line.startswith("CAPTION:"):
+            caption = line.removeprefix("CAPTION:").strip()
+        elif line.startswith("SKETCH:"):
+            sketch_description = line.removeprefix("SKETCH:").strip()
+
+    if not caption or not sketch_description:
+        raise ValueError(f"Could not parse Gemini response:\n{text}")
+
+    return caption, sketch_description
 
 
-def save_draft(content: str) -> None:
+def build_imagen_prompt(sketch_description: str) -> str:
+    return (
+        f"{sketch_description}. "
+        "Minimalist pencil sketch style, hand-drawn look, thin clean pencil outlines, "
+        "white background, no color, no shading fill, no text, no logos, "
+        "news editorial illustration style."
+    )
+
+
+def generate_sketch(api_key: str, imagen_prompt: str) -> bytes:
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_images(
+        model="imagen-3.0-generate-002",
+        prompt=imagen_prompt,
+        config=types.GenerateImagesConfig(
+            number_of_images=1,
+            aspect_ratio="1:1",
+            safety_filter_level="block_only_high",
+        ),
+    )
+    if not response.generated_images:
+        raise RuntimeError("Imagen returned no images — prompt may have been blocked by safety filters.")
+    return response.generated_images[0].image.image_bytes
+
+
+def save_draft(caption: str, image_bytes: bytes) -> None:
     DRAFT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DRAFT_PATH.write_text(content, encoding="utf-8")
-    print(f"Draft saved to {DRAFT_PATH}")
+    DRAFT_PATH.write_text(caption, encoding="utf-8")
+    DRAFT_IMAGE_PATH.write_bytes(image_bytes)
+    print(f"Caption saved to {DRAFT_PATH}")
+    print(f"Image saved to {DRAFT_IMAGE_PATH}")
 
 
-def send_email(content: str, repo: str) -> None:
+def send_email(caption: str, image_bytes: bytes, repo: str) -> None:
     resend.api_key = os.environ["RESEND_API_KEY"]
     from_email = os.environ.get("RESEND_FROM_EMAIL", "linkedin-bot@gnosiscore.org")
     today = datetime.date.today()
 
     publish_url = f"https://github.com/{repo}/actions/workflows/publish.yml"
+    img_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
     html_body = f"""
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px;">
   <h2 style="color: #0a66c2;">LinkedIn Draft Ready — {today.strftime('%B %d, %Y')}</h2>
-  <p>Your weekly LinkedIn post has been generated. Review it below, then publish when ready.</p>
+  <p>Your weekly LinkedIn sketch post has been generated. Review it below, then publish when ready.</p>
 
-  <div style="background: #f3f4f6; border-left: 4px solid #0a66c2; padding: 16px 20px; margin: 24px 0; white-space: pre-wrap; font-family: monospace; font-size: 14px; line-height: 1.6;">
-{content}
+  <img src="data:image/png;base64,{img_b64}"
+       style="max-width: 400px; display: block; margin: 0 auto 16px; border: 1px solid #e5e7eb;" />
+
+  <div style="background: #f3f4f6; border-left: 4px solid #0a66c2; padding: 16px 20px; margin: 24px 0;
+              font-family: monospace; font-size: 14px; line-height: 1.6;">
+    {caption}
   </div>
 
   <p>
     <a href="{publish_url}"
-       style="display: inline-block; background: #0a66c2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+       style="display: inline-block; background: #0a66c2; color: white; padding: 12px 24px;
+              text-decoration: none; border-radius: 4px; font-weight: bold;">
       Publish to LinkedIn →
     </a>
   </p>
@@ -94,15 +137,18 @@ def main() -> None:
     repo = os.environ.get("GITHUB_REPOSITORY", "your-username/LinkedInPost")
 
     model = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
-    print(f"Generating post via {model}...")
-    post = generate_post(api_key)
+    print(f"Step 1: Finding this week's top story via {model}...")
+    caption, sketch_description = get_top_story(api_key)
 
-    print("\n--- GENERATED POST ---")
-    print(post)
-    print("--- END POST ---\n")
+    print(f"Caption : {caption}")
+    print(f"Sketch  : {sketch_description}\n")
 
-    save_draft(post)
-    send_email(post, repo)
+    print("Step 2: Generating pencil sketch via Imagen 3...")
+    imagen_prompt = build_imagen_prompt(sketch_description)
+    image_bytes = generate_sketch(api_key, imagen_prompt)
+
+    save_draft(caption, image_bytes)
+    send_email(caption, image_bytes, repo)
 
 
 if __name__ == "__main__":
