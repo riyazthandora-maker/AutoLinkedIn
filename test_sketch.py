@@ -68,7 +68,7 @@ def generate_sketch(api_key: str, imagen_prompt: str) -> bytes:
     print(f"Image prompt:\n  {imagen_prompt}\n")
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-3.8-flash",
         contents=imagen_prompt,
         config=types.GenerateContentConfig(
             response_modalities=["IMAGE"],
