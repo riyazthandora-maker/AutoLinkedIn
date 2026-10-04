@@ -64,11 +64,15 @@ def build_imagen_prompt(sketch_description: str) -> str:
     )
 
 
-def generate_sketch(client: genai.Client, imagen_prompt: str) -> bytes:
+def generate_sketch(api_key: str, imagen_prompt: str) -> bytes:
     print(f"Image prompt:\n  {imagen_prompt}\n")
 
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(api_version="v1alpha"),
+    )
     response = client.models.generate_content(
-        model="gemini-2.0-flash-preview-image-generation",
+        model="gemini-2.0-flash-exp",
         contents=imagen_prompt,
         config=types.GenerateContentConfig(
             response_modalities=["IMAGE"],
@@ -101,7 +105,7 @@ def main() -> None:
 
     print("Step 2: Generating pencil sketch via Imagen...")
     imagen_prompt = build_imagen_prompt(sketch_description)
-    image_bytes = generate_sketch(client, imagen_prompt)
+    image_bytes = generate_sketch(api_key, imagen_prompt)
 
     output_path = Path("test_sketch.png")
     output_path.write_bytes(image_bytes)
