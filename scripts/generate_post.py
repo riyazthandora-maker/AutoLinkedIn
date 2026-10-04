@@ -36,6 +36,7 @@ def get_top_story(api_key: str) -> tuple[str, str]:
         config=types.GenerateContentConfig(
             tools=[types.Tool(google_search=types.GoogleSearch())],
             temperature=0.4,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         ),
     )
 
@@ -64,17 +65,17 @@ def build_imagen_prompt(sketch_description: str) -> str:
 
 def generate_sketch(api_key: str, imagen_prompt: str) -> bytes:
     client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
+    response = client.models.generate_images(
         model="gemini-3.8-flash",
-        contents=imagen_prompt,
-        config=types.GenerateContentConfig(
-            response_modalities=["IMAGE"],
+        prompt=imagen_prompt,
+        config=types.GenerateImagesConfig(
+            number_of_images=1,
+            aspect_ratio="1:1",
         ),
     )
-    for part in response.candidates[0].content.parts:
-        if part.inline_data is not None:
-            return part.inline_data.data
-    raise RuntimeError("No image returned — prompt may have been blocked by safety filters.")
+    if not response.generated_images:
+        raise RuntimeError("No image returned — prompt may have been blocked by safety filters.")
+    return response.generated_images[0].image.image_bytes
 
 
 def save_draft(caption: str, image_bytes: bytes) -> None:
