@@ -62,22 +62,13 @@ def build_imagen_prompt(sketch_description: str) -> str:
     )
 
 
-def generate_sketch(api_key: str, imagen_prompt: str) -> bytes:
-    client = genai.Client(
-        api_key=api_key,
-        http_options=types.HttpOptions(api_version="v1alpha"),
-    )
-    response = client.models.generate_content(
-        model="gemini-2.0-flash-exp",
-        contents=imagen_prompt,
-        config=types.GenerateContentConfig(
-            response_modalities=["IMAGE"],
-        ),
-    )
-    for part in response.candidates[0].content.parts:
-        if part.inline_data is not None:
-            return part.inline_data.data
-    raise RuntimeError("No image returned — prompt may have been blocked by safety filters.")
+def generate_sketch(imagen_prompt: str) -> bytes:
+    import urllib.parse
+    encoded = urllib.parse.quote(imagen_prompt)
+    url = f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&nologo=true&model=flux"
+    resp = requests.get(url, timeout=120)
+    resp.raise_for_status()
+    return resp.content
 
 
 def save_draft(caption: str, image_bytes: bytes) -> None:
@@ -147,7 +138,7 @@ def main() -> None:
 
     print("Step 2: Generating pencil sketch via Imagen 3...")
     imagen_prompt = build_imagen_prompt(sketch_description)
-    image_bytes = generate_sketch(api_key, imagen_prompt)
+    image_bytes = generate_sketch(imagen_prompt)
 
     save_draft(caption, image_bytes)
     send_email(caption, image_bytes, repo)
