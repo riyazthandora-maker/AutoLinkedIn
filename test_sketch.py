@@ -68,18 +68,22 @@ def generate_sketch(api_key: str, imagen_prompt: str) -> bytes:
     print(f"Image prompt:\n  {imagen_prompt}\n")
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
-        model="imagen-3.0-generate-002",
+        model="gemini-2.5-flash-image",
         contents=imagen_prompt,
         config=types.GenerateContentConfig(
             response_modalities=["IMAGE"],
             image_config=types.ImageConfig(aspect_ratio="1:1"),
         ),
     )
-    if response.candidates and response.candidates[0].content:
+    if response.parts:
+        for part in response.parts:
+            if part.inline_data:
+                return part.inline_data.data
+    if response.candidates and response.candidates[0].content.parts:
         for part in response.candidates[0].content.parts:
             if part.inline_data:
                 return part.inline_data.data
-    raise ValueError("No image data found in response.")
+    raise ValueError("No image data returned from Google GenAI API.")
 
 
 def main() -> None:
