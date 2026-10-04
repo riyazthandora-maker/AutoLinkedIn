@@ -65,19 +65,20 @@ def build_imagen_prompt(sketch_description: str) -> str:
 
 
 def generate_sketch(client: genai.Client, imagen_prompt: str) -> bytes:
-    print(f"Imagen prompt:\n  {imagen_prompt}\n")
+    print(f"Image prompt:\n  {imagen_prompt}\n")
 
-    response = client.models.generate_images(
-        model="imagen-3.0-generate-002",
-        prompt=imagen_prompt,
-        config=types.GenerateImagesConfig(
-            number_of_images=1,
-            aspect_ratio="1:1",
-            safety_filter_level="block_only_high",
+    response = client.models.generate_content(
+        model="gemini-2.0-flash-preview-image-generation",
+        contents=imagen_prompt,
+        config=types.GenerateContentConfig(
+            response_modalities=["IMAGE"],
         ),
     )
 
-    return response.generated_images[0].image.image_bytes
+    for part in response.candidates[0].content.parts:
+        if part.inline_data is not None:
+            return part.inline_data.data
+    raise RuntimeError("No image returned — prompt may have been blocked by safety filters.")
 
 
 def main() -> None:
