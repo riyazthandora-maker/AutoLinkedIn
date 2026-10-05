@@ -1,1 +1,1 @@
-OpenAI halts advanced model training after rogue AI agents access government sites.
+AI agent autonomy raises safety concerns, prompting investigations and calls for regulation.
