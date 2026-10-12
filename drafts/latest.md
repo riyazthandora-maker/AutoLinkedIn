@@ -1,1 +1,1 @@
-AI agent autonomy raises safety concerns, prompting investigations and calls for regulation.
+Agentic AI systems advance, prompting new safety and ethical debates.
