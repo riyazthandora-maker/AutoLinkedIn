@@ -1,1 +1,1 @@
-Microsoft unveils Maia 300 AI chip, advancing custom silicon for cloud AI.
+Autonomous AI agents are rapidly transforming industries, raising both capabilities and security concerns.
