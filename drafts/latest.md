@@ -1,1 +1,1 @@
-Autonomous AI agents are rapidly transforming industries, raising both capabilities and security concerns.
+Tech stocks plummet due to AI spending concerns and weak earnings.
